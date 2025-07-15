@@ -1,59 +1,74 @@
 // src/Login.js
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 
-export default function Login({ onLogin }) {
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
+export default function Login({ onLogin, onCancel }) {
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-
+    e.preventDefault();
+    setError('');
     try {
       const res = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al iniciar sesión')
-      }
-
-      onLogin && onLogin(data.token)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+      onLogin(data.token);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     }
   }
+  const handleCancel = () => {
+    onCancel(); // Ejecuta la función de cancelación proporcionada por el padre
+  };
+
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Iniciar sesión</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      <input
-        type="email"
-        name="email"
-        placeholder="Correo electrónico"
-        value={form.email}
-        onChange={handleChange}
-        required
-      />
-      <input
-        type="password"
-        name="password"
-        placeholder="Contraseña"
-        value={form.password}
-        onChange={handleChange}
-        required
-      />
-      <button type="submit">Entrar</button>
-    </form>
-  )
+    <section className="login-section d-flex justify-content-center align-items-center vh-100">
+      <div className="login-card p-5 shadow bg-white rounded">
+        <h3 className="text-center mb-4">Iniciar Sesión</h3>
+        {error && <div className="alert alert-danger">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label">Usuario</label>
+            <input
+              type="email"
+              className="form-control"
+              id="email"
+              name="email"
+              placeholder="Correo electrónico"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="password" className="form-label">Contraseña</label>
+            <input
+              type="password"
+              className="form-control"
+              id="password"
+              name="password"
+              placeholder="Contraseña"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <button type="submit" className="btn btn-primary w-100 m-2">Entrar</button>
+          <button 
+        type="button" 
+        className="btn btn-danger w-100 m-2"
+        onClick={handleCancel}  // Llama a la función de cancelación al hacer clic
+      >
+        Cancelar
+      </button>
+        </form>
+      </div>
+    </section>
+  );
 }
