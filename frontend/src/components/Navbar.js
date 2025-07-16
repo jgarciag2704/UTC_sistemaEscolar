@@ -5,7 +5,7 @@ export default function Navbar({ token, onLoginClick, onRegisterClick, onLogout 
   return (
     <nav className="navbar navbar-expand-lg bg-customs1">
       <div className="container-fluid">
-        <a className="navbar-brand" href="#">
+        <a className="navbar-brand" href="index.js">
           <img src={logo} alt="logo de universidad" width="50" />
         </a>
         <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarScroll">

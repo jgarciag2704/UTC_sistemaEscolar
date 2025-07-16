@@ -17,48 +17,59 @@ function App() {
     setShowRegister(false);
   };
 
+  const handleLogin = (tok) => {
+    setToken(tok);
+    setShowLogin(false);
+    setShowRegister(false);
+  };
+
+  const handleLogout = () => {
+    setToken(null);
+    setShowLogin(false);
+    setShowRegister(false);
+  };
+
   return (
     <>
-     <Navbar
-  token={token}
-  onLoginClick={() => { setShowLogin(true); setShowRegister(false); }}
-  onRegisterClick={() => { setShowRegister(true); setShowLogin(false); }}
-  onLogout={() => { setToken(null); setShowLogin(false); setShowRegister(false); }}
-/>
+      {/* Navbar siempre visible */}
+      <Navbar
+        token={token}
+        onLoginClick={() => {
+          setShowLogin(true);
+          setShowRegister(false);
+        }}
+        onRegisterClick={() => {
+          setShowRegister(true);
+          setShowLogin(false);
+        }}
+        onLogout={handleLogout}
+      />
 
       <main>
-        {/* Mostrar login */}
+        {!showLogin && !showRegister && <HeroCarousel />}
+
         {showLogin && !token && (
-          <div className="container d-flex justify-content-center">
-            <Login
-              onLogin={(tok) => {
-                setToken(tok);
-                setShowLogin(false);
-              }}
-              onCancel={handleCancelLogin}
+          <div className="container d-flex justify-content-center my-4">
+            <Login onLogin={handleLogin} onCancel={handleCancelLogin} />
+          </div>
+        )}
+
+        {showRegister && !token && (
+          <div className="container d-flex justify-content-center my-4">
+            <Register
+              onRegistered={() => setShowRegister(false)}
+              onCancel={() => setShowRegister(false)}
             />
           </div>
         )}
 
-        {/* Mostrar registro */}
-        {showRegister && !token && (
-  <Register 
-    onRegistered={() => setShowRegister(false)} 
-    onCancel={() => setShowRegister(false)} 
-  />
-)}
-
-
-        {/* Mostrar contenido principal solo si NO estamos en login ni registro */}
-       {!showLogin && !showRegister && (
-  <>
-    <HeroCarousel />
-    <AccessCards />
-    <Banner />
-    <Footer />
-  </>
-)}
-
+        {!showLogin && !showRegister && token && (
+          <>
+            <AccessCards />
+            <Banner />
+            <Footer />
+          </>
+        )}
       </main>
     </>
   );
