@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import HeroCarousel from './components/HeroCarousel';
@@ -8,66 +7,58 @@ import Footer from './components/Footer';
 import Login from './Login';
 import Register from './Register';
 
-
-
-//parte de variables globales
-//variable para saber en que estado estamos si logeado o no
-let var1 = "";
-
-//variable para saber que nivel de usuario es administrador o alumno
-let nivel = "";
-
-
-
-
 function App() {
-
-
-
   const [token, setToken] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
-  // Función para manejar el "Cancelar" en Login
   const handleCancelLogin = () => {
     setShowLogin(false);
-    setShowRegister(false); // Si también quieres ocultar el registro
+    setShowRegister(false);
   };
 
   return (
     <>
-      <Navbar onLoginClick={() => {
-        setShowLogin(true);
-        setShowRegister(false);
-      }} />
+     <Navbar
+  token={token}
+  onLoginClick={() => { setShowLogin(true); setShowRegister(false); }}
+  onRegisterClick={() => { setShowRegister(true); setShowLogin(false); }}
+  onLogout={() => { setToken(null); setShowLogin(false); setShowRegister(false); }}
+/>
 
-      <main className="">
+      <main>
         {/* Mostrar login */}
         {showLogin && !token && (
           <div className="container d-flex justify-content-center">
-            <Login onLogin={(tok) => {
-              setToken(tok);
-              setShowLogin(false);
-            }} onCancel={handleCancelLogin} />
+            <Login
+              onLogin={(tok) => {
+                setToken(tok);
+                setShowLogin(false);
+              }}
+              onCancel={handleCancelLogin}
+            />
           </div>
         )}
 
-        {/* Mostrar el resto de la web solo si NO estás viendo el login */}
-        {!showLogin && (
-          <>
-            <HeroCarousel />
-            <AccessCards />
-            <Banner />
-            <Footer />
-          </>
-        )}
-
-        {/* Mostrar registro si se activa */}
+        {/* Mostrar registro */}
         {showRegister && !token && (
-          <div className="container d-flex justify-content-center">
-            <Register onRegistered={() => setShowRegister(false)} />
-          </div>
-        )}
+  <Register 
+    onRegistered={() => setShowRegister(false)} 
+    onCancel={() => setShowRegister(false)} 
+  />
+)}
+
+
+        {/* Mostrar contenido principal solo si NO estamos en login ni registro */}
+       {!showLogin && !showRegister && (
+  <>
+    <HeroCarousel />
+    <AccessCards />
+    <Banner />
+    <Footer />
+  </>
+)}
+
       </main>
     </>
   );
