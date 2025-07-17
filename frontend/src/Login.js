@@ -1,11 +1,11 @@
-// src/Login.js
 import React, { useState } from 'react';
 
-export default function Login({ onLogin, onCancel }) {
+export default function Login({ onLoginSuccess, onCancel }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -13,19 +13,20 @@ export default function Login({ onLogin, onCancel }) {
       const res = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // para enviar cookies
         body: JSON.stringify(form),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
-      onLogin(data.token);
+      onLoginSuccess(); // sólo avisamos al padre que login fue exitoso
     } catch (err) {
       setError(err.message);
     }
-  }
-  const handleCancel = () => {
-    onCancel(); // Ejecuta la función de cancelación proporcionada por el padre
   };
 
+  const handleCancel = () => {
+    onCancel();
+  };
 
   return (
     <section className="login-section d-flex justify-content-center align-items-center vh-100">
@@ -60,13 +61,13 @@ export default function Login({ onLogin, onCancel }) {
             />
           </div>
           <button type="submit" className="btn btn-primary w-100 m-2">Entrar</button>
-          <button 
-        type="button" 
-        className="btn btn-danger w-100 m-2"
-        onClick={handleCancel}  // Llama a la función de cancelación al hacer clic
-      >
-        Cancelar
-      </button>
+          <button
+            type="button"
+            className="btn btn-danger w-100 m-2"
+            onClick={handleCancel}
+          >
+            Cancelar
+          </button>
         </form>
       </div>
     </section>
