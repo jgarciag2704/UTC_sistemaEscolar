@@ -106,7 +106,7 @@ app.post('/api/login', async (req, res) => {
 
     const { data: user, error: findError } = await supabase
       .from('usuarios')
-      .select('matricula, nombre, contrasena, rol, email')
+      .select('matricula, nombre, contrasena, rol, email, ultimo_inicio')
       .eq('email', email)
       .maybeSingle();
 
@@ -116,6 +116,32 @@ app.post('/api/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.contrasena);
     if (!match) return res.status(400).json({ error: 'Email o contraseña incorrectos' });
 
+  const token = jwt.sign(
+  {
+    matricula: user.matricula,
+    nombre: user.nombre,
+    rol: user.rol,
+    email: user.email,
+    ultimo_inicio: user.ultimo_inicio || null,
+  },
+  JWT_SECRET,
+  { expiresIn: '8h' }
+);
+
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 8 * 60 * 60 * 1000,
+    });
+
+    // Si no ha iniciado sesión antes (primer inicio), pedir cambio de contraseña
+    if (!user.ultimo_inicio) {
+      return res.status(200).json({ message: 'Debe cambiar su contraseña', changePassword: true });
+    }
+
+    // Si ya tenía inicio previo, actualizamos la fecha
     const { error: updateError } = await supabase
       .from('usuarios')
       .update({ ultimo_inicio: new Date().toISOString() })
@@ -125,25 +151,41 @@ app.post('/api/login', async (req, res) => {
       console.error('⚠️ Error al actualizar último inicio de sesión:', updateError);
     }
 
-    const token = jwt.sign(
-      { matricula: user.matricula, nombre: user.nombre, rol: user.rol, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 8 * 60 * 60 * 1000,
-    });
-
-    return res.json({ message: 'Login exitoso' });
+    return res.json({ message: 'Login exitoso', changePassword: false });
   } catch (err) {
     console.error('🛑 Login error:', err);
     return res.status(500).json({ error: err.message || 'Error interno del servidor' });
   }
 });
+
+app.post('/api/reset-password', authenticateToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Contraseña obligatoria' });
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    const { error } = await supabase
+      .from('usuarios')
+      .update({
+        contrasena: hashed,
+        ultimo_inicio: new Date().toISOString(),
+        usuario_rest_cont: req.user.matricula,
+      })
+      .eq('matricula', req.user.matricula);
+
+    if (error) {
+      console.error('❌ Error al restablecer contraseña:', error);
+      return res.status(500).json({ error: 'Error al restablecer la contraseña' });
+    }
+
+    return res.sendStatus(200); // éxito sin contenido adicional
+  } catch (err) {
+    console.error('🛑 Error general al restablecer contraseña:', err);
+    return res.status(500).json({ error: err.message || 'Error interno del servidor' });
+  }
+});
+
 
 
 // Middleware para validar token

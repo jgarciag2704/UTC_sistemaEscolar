@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Login({ onLoginSuccess, onCancel }) {
+export default function Login({ onLoginSuccess, onPasswordResetRequired, onCancel }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
 
@@ -13,17 +13,19 @@ export default function Login({ onLoginSuccess, onCancel }) {
       const res = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // para enviar cookies
+        credentials: 'include',
         body: JSON.stringify(form),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
-      onLoginSuccess(); // sólo avisamos al padre que login fue exitoso
+
+onLoginSuccess(data);
+
+
     } catch (err) {
       setError(err.message);
     }
   };
-
   const handleCancel = () => {
     onCancel();
   };
