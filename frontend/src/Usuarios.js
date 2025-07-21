@@ -31,14 +31,32 @@ export default function Usuarios() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
-  // Carga inicial: carreras, roles, usuarios
-  useEffect(() => {
-    // Simula carga de opciones desde la API - cambia por tu API real
-    setCarreras(['ING-SIS', 'ADM-EMP']);
-    setRoles(['admin', 'alumno']);
+ useEffect(() => {
+  fetchCarreras();
+  fetchRoles();
+  fetchUsuarios();
+}, []);
 
-    fetchUsuarios();
-  }, []);
+const fetchCarreras = async () => {
+  try {
+    const res = await fetch('http://localhost:3001/api/carreras', { credentials: 'include' });
+    const data = await res.json();
+    setCarreras(data); // Ya trae carrera_id y nombre
+  } catch (err) {
+    console.error('Error cargando carreras', err);
+  }
+};
+
+const fetchRoles = async () => {
+  try {
+    const res = await fetch('http://localhost:3001/api/roles', { credentials: 'include' });
+    const data = await res.json();
+    setRoles(data); // Ya trae id y nombre
+  } catch (err) {
+    console.error('Error cargando roles', err);
+  }
+};
+
 
   // Función para obtener usuarios desde backend
   const fetchUsuarios = async () => {
@@ -232,17 +250,26 @@ export default function Usuarios() {
                 disabled={!!editingId} // no cambiar email al editar
               />
             </div>
-            <div className="mb-2">
-              <label>Contraseña {editingId && <small>(Dejar vacío para no cambiar)</small>}</label>
-              <input
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                className="form-control"
-                {...(!editingId && { required: true })}
-              />
-            </div>
+            {!editingId ? (
+  <div className="mb-3">
+    <label>Contraseña</label>
+    <p className="form-text">
+      La contraseña es <strong>Temporal1</strong>, se le pedirá cambiar contraseña en su próximo inicio de sesión
+    </p>
+  </div>
+) : (
+  <div className="mb-2">
+    <label>Contraseña <small>(Dejar vacío para no cambiar)</small></label>
+    <input
+      type="password"
+      name="password"
+      value={form.password}
+      onChange={handleChange}
+      className="form-control"
+    />
+  </div>
+)}
+
             <div className="mb-2">
               <label>Nombre</label>
               <input
@@ -298,36 +325,38 @@ export default function Usuarios() {
             <div className="mb-2">
               <label>Carrera</label>
               <select
-                name="carrera_id"
-                value={form.carrera_id}
-                onChange={handleChange}
-                className="form-select"
-                required
-              >
-                <option value="">Seleccionar carrera</option>
-                {carreras.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+  name="carrera_id"
+  value={form.carrera_id}
+  onChange={handleChange}
+  className="form-select"
+  required
+>
+  <option value="">Seleccionar carrera</option>
+  {carreras.map((c) => (
+    <option key={c.carrera_id} value={c.carrera_id}>
+      {c.nombre}
+    </option>
+  ))}
+</select>
+
             </div>
             <div className="mb-3">
               <label>Rol</label>
               <select
-                name="rol"
-                value={form.rol}
-                onChange={handleChange}
-                className="form-select"
-                required
-              >
-                <option value="">Seleccionar rol</option>
-                {roles.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+  name="rol"
+  value={form.rol}
+  onChange={handleChange}
+  className="form-select"
+  required
+>
+  <option value="">Seleccionar rol</option>
+  {roles.map((r) => (
+    <option key={r.rol_id} value={r.rol_id}>
+      {r.nombre}
+    </option>
+  ))}
+</select>
+
             </div>
             <button type="submit" className="btn btn-primary me-2">
               {editingId ? 'Actualizar' : 'Registrar'}

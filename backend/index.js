@@ -45,10 +45,14 @@ app.post('/api/register', async (req, res) => {
   try {
     const { nombre, apellido1, apellido2, email, password, rol, carrera_id, direccion, telefono } = req.body;
 
-    if (!nombre || !apellido1 || !email || !password || !rol) {
+    if (!nombre || !apellido1 || !email || !rol) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
 
+    // Si no envían password, usar 'Temporal1' por defecto
+    const plainPassword = password && password.trim() !== '' ? password : 'Temporal1';
+
+    // Verificar si ya existe el usuario
     const { data: existingUser, error: findError } = await supabase
       .from('usuarios')
       .select('matricula')
@@ -58,7 +62,7 @@ app.post('/api/register', async (req, res) => {
     if (findError) throw findError;
     if (existingUser) return res.status(400).json({ error: 'El correo ya está registrado' });
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(plainPassword, 10);
     const matricula = uuidv4();
 
     const { data, error: insertError } = await supabase
@@ -74,7 +78,8 @@ app.post('/api/register', async (req, res) => {
         carrera_id,
         direccion,
         telefono,
-        activo: 1
+        activo: 1,
+        ultimo_inicio: null,  // aquí seteas null
       })
       .select()
       .single();
@@ -83,13 +88,15 @@ app.post('/api/register', async (req, res) => {
 
     return res.json({
       message: 'Usuario creado exitosamente',
-      usuario: { matricula: data.matricula, nombre: data.nombre, email: data.email }
+      usuario: { matricula: data.matricula, nombre: data.nombre, email: data.email },
+      passwordDefault: plainPassword,  // opcional: para que el frontend sepa cuál es la pass default
     });
   } catch (err) {
     console.error('🛑 Registro error:', err);
     return res.status(500).json({ error: err.message || 'Error interno del servidor' });
   }
 });
+
 
 // Login
 app.post('/api/login', async (req, res) => {
@@ -109,7 +116,20 @@ app.post('/api/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.contrasena);
     if (!match) return res.status(400).json({ error: 'Email o contraseña incorrectos' });
 
-    const token = jwt.sign({ matricula: user.matricula, nombre: user.nombre, rol: user.rol, email: user.email }, JWT_SECRET, { expiresIn: '8h' });
+    const { error: updateError } = await supabase
+      .from('usuarios')
+      .update({ ultimo_inicio: new Date().toISOString() })
+      .eq('email', email);
+
+    if (updateError) {
+      console.error('⚠️ Error al actualizar último inicio de sesión:', updateError);
+    }
+
+    const token = jwt.sign(
+      { matricula: user.matricula, nombre: user.nombre, rol: user.rol, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '8h' }
+    );
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -124,6 +144,7 @@ app.post('/api/login', async (req, res) => {
     return res.status(500).json({ error: err.message || 'Error interno del servidor' });
   }
 });
+
 
 // Middleware para validar token
 function authenticateToken(req, res, next) {
@@ -250,6 +271,25 @@ app.delete('/api/usuarios/:matricula', authenticateToken, async (req, res) => {
     res.status(500).json({ error: err.message || 'Error interno del servidor' });
   }
 });
+
+// Obtener roles (pública)
+app.get('/api/roles', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('roles') 
+      .select('rol_id, nombre')
+      .order('rol_id');
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err) {
+    console.error('Error al obtener roles:', err);
+    res.status(500).json({ error: 'Error al obtener roles' });
+  }
+});
+
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend escuchando en http://localhost:${PORT}`));
