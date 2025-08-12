@@ -40,8 +40,8 @@ app.get('/api/carreras', async (req, res) => {
   }
 });
 
-// Registro
-app.post('/api/register', async (req, res) => {
+// Función para registrar usuario (reutilizable)
+async function registrarUsuario(req, res) {
   try {
     const { nombre, apellido1, apellido2, email, password, rol, carrera_id, direccion, telefono } = req.body;
 
@@ -79,7 +79,7 @@ app.post('/api/register', async (req, res) => {
         direccion,
         telefono,
         activo: 1,
-        ultimo_inicio: null,  // aquí seteas null
+        ultimo_inicio: null,
       })
       .select()
       .single();
@@ -89,14 +89,19 @@ app.post('/api/register', async (req, res) => {
     return res.json({
       message: 'Usuario creado exitosamente',
       usuario: { matricula: data.matricula, nombre: data.nombre, email: data.email },
-      passwordDefault: plainPassword,  // opcional: para que el frontend sepa cuál es la pass default
+      passwordDefault: plainPassword,
     });
   } catch (err) {
     console.error('🛑 Registro error:', err);
     return res.status(500).json({ error: err.message || 'Error interno del servidor' });
   }
-});
+}
 
+// Registrar usuario (ruta original)
+app.post('/api/register', registrarUsuario);
+
+// Registrar usuario (nueva ruta)
+app.post('/api/usuarios', registrarUsuario);
 
 // Login
 app.post('/api/login', async (req, res) => {
@@ -116,18 +121,17 @@ app.post('/api/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.contrasena);
     if (!match) return res.status(400).json({ error: 'Email o contraseña incorrectos' });
 
-  const token = jwt.sign(
-  {
-    matricula: user.matricula,
-    nombre: user.nombre,
-    rol: user.rol,
-    email: user.email,
-    ultimo_inicio: user.ultimo_inicio || null,
-  },
-  JWT_SECRET,
-  { expiresIn: '8h' }
-);
-
+    const token = jwt.sign(
+      {
+        matricula: user.matricula,
+        nombre: user.nombre,
+        rol: user.rol,
+        email: user.email,
+        ultimo_inicio: user.ultimo_inicio || null,
+      },
+      JWT_SECRET,
+      { expiresIn: '8h' }
+    );
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -179,14 +183,12 @@ app.post('/api/reset-password', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Error al restablecer la contraseña' });
     }
 
-    return res.sendStatus(200); // éxito sin contenido adicional
+    return res.sendStatus(200);
   } catch (err) {
     console.error('🛑 Error general al restablecer contraseña:', err);
     return res.status(500).json({ error: err.message || 'Error interno del servidor' });
   }
 });
-
-
 
 // Middleware para validar token
 function authenticateToken(req, res, next) {
@@ -218,7 +220,6 @@ app.post('/api/logout', (req, res) => {
 // Listar usuarios (protegido)
 app.get('/api/usuarios', authenticateToken, async (req, res) => {
   try {
-    // Puedes agregar aquí validación para rol admin si quieres
     const { data, error } = await supabase
       .from('usuarios')
       .select('matricula, nombre, apellido1, apellido2, email, rol, carrera_id, telefono, direccion');
@@ -237,9 +238,6 @@ app.put('/api/usuarios/:matricula', authenticateToken, async (req, res) => {
   try {
     const matriculaParam = req.params.matricula;
 
-    console.log('req.user (del token):', req.user);
-    console.log('Matrícula param de la URL:', matriculaParam);
-
     const {
       nombre,
       apellido1,
@@ -251,11 +249,9 @@ app.put('/api/usuarios/:matricula', authenticateToken, async (req, res) => {
       password,
     } = req.body;
 
-    // Ajustar validación rol (puede ser string o número)
     const esAdmin = req.user.rol === 'admin' || req.user.rol === 1 || req.user.rol === '1';
 
     if (!esAdmin && req.user.matricula !== matriculaParam) {
-      console.log('No autorizado. Usuario rol:', req.user.rol, 'matricula token:', req.user.matricula);
       return res.status(403).json({ error: 'No autorizado para actualizar este usuario' });
     }
 
@@ -318,7 +314,7 @@ app.delete('/api/usuarios/:matricula', authenticateToken, async (req, res) => {
 app.get('/api/roles', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('roles') 
+      .from('roles')
       .select('rol_id, nombre')
       .order('rol_id');
 
@@ -331,6 +327,133 @@ app.get('/api/roles', async (req, res) => {
   }
 });
 
+
+
+// Materias
+// Listar todas las materias (protegido)
+app.get('/api/materias', authenticateToken, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('materias')
+      .select('materia_id, nombre_materia, carrera_id, tipo')
+      .order('nombre_materia');
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error('Error al obtener materias:', err);
+    res.status(500).json({ error: 'Error al obtener materias' });
+  }
+});
+
+// Obtener materia por ID (protegido)
+app.get('/api/materias/:materia_id', authenticateToken, async (req, res) => {
+  try {
+    const materia_id = req.params.materia_id;
+
+    const { data, error } = await supabase
+      .from('materias')
+      .select('materia_id, nombre_materia, carrera_id, tipo')
+      .eq('materia_id', materia_id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Materia no encontrada' });
+
+    res.json(data);
+  } catch (err) {
+    console.error('Error al obtener materia:', err);
+    res.status(500).json({ error: 'Error al obtener materia' });
+  }
+});
+
+// Crear materia (protegido)
+app.post('/api/materias', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.rol !== 'admin' && req.user.rol !== 1 && req.user.rol !== '1') {
+      return res.status(403).json({ error: 'No autorizado para crear materias' });
+    }
+
+    const { materia_id, nombre_materia, carrera_id, tipo } = req.body;
+
+    if (!materia_id || !nombre_materia || !carrera_id || !tipo) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
+
+    const { data, error } = await supabase
+      .from('materias')
+      .insert({ materia_id, nombre_materia, carrera_id, tipo })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json({ message: 'Materia creada exitosamente', materia: data });
+  } catch (err) {
+    console.error('Error al crear materia:', err);
+    res.status(500).json({ error: err.message || 'Error interno del servidor' });
+  }
+});
+
+
+// Actualizar materia (protegido)
+app.put('/api/materias/:materia_id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.rol !== 'admin' && req.user.rol !== 1 && req.user.rol !== '1') {
+      return res.status(403).json({ error: 'No autorizado para actualizar materias' });
+    }
+
+    const materia_id = req.params.materia_id;
+    const { nombre_materia, carrera_id, tipo } = req.body;
+
+    const updateData = {};
+    if (nombre_materia) updateData.nombre_materia = nombre_materia;
+    if (carrera_id) updateData.carrera_id = carrera_id;
+    if (tipo) updateData.tipo = tipo;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No hay datos para actualizar' });
+    }
+
+    const { data, error } = await supabase
+      .from('materias')
+      .update(updateData)
+      .eq('materia_id', materia_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Materia no encontrada' });
+
+    res.json({ message: 'Materia actualizada correctamente', materia: data });
+  } catch (err) {
+    console.error('Error al actualizar materia:', err);
+    res.status(500).json({ error: err.message || 'Error interno del servidor' });
+  }
+});
+
+// Eliminar materia (protegido)
+app.delete('/api/materias/:materia_id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.rol !== 'admin' && req.user.rol !== 1 && req.user.rol !== '1') {
+      return res.status(403).json({ error: 'No autorizado para eliminar materias' });
+    }
+
+    const materia_id = req.params.materia_id;
+
+    const { error } = await supabase
+      .from('materias')
+      .delete()
+      .eq('materia_id', materia_id);
+
+    if (error) throw error;
+
+    res.json({ message: 'Materia eliminada correctamente' });
+  } catch (err) {
+    console.error('Error al eliminar materia:', err);
+    res.status(500).json({ error: err.message || 'Error interno del servidor' });
+  }
+});
 
 
 const PORT = process.env.PORT || 3001;

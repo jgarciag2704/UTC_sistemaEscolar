@@ -1,7 +1,7 @@
 import React from 'react';
 import logo from '../assets/img/logo.png';
 
-export default function Navbar({ user, onLoginClick, onRegisterClick, onLogout, onUsuariosClick }) {
+export default function Navbar({ user, onLoginClick, onRegisterClick, onLogout, onUsuariosClick, onMateriasClick }) {
   const isLoggedIn = Boolean(user);
 
   return (
@@ -59,9 +59,17 @@ export default function Navbar({ user, onLoginClick, onRegisterClick, onLogout, 
                   </a>
                   <ul className="dropdown-menu">
                     <li>
-                      <a className="dropdown-item admin-only" href="#">
+                      <button
+                        type="button"
+                        className="dropdown-item admin-only btn btn-link"
+                        style={{ textDecoration: 'none' }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (typeof onMateriasClick === 'function') onMateriasClick();
+                        }}
+                      >
                         Materias
-                      </a>
+                      </button>
                     </li>
                     <li>
                       <button

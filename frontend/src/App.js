@@ -8,12 +8,14 @@ import Login from './Login';
 import Register from './Register';
 import Usuarios from './Usuarios';
 import ResetPassword from './ResetPassword';
+import Materias from './Materias';
 
 function App() {
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showUsuarios, setShowUsuarios] = useState(false);
+  const [showMaterias, setShowMaterias] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [showResetPassword, setShowResetPassword] = useState(false); // nuevo estado
 
@@ -80,6 +82,7 @@ function App() {
       setShowLogin(false);
       setShowRegister(false);
       setShowResetPassword(false);
+      setShowMaterias(false);
     });
   };
 
@@ -87,10 +90,22 @@ function App() {
     setShowLogin(false);
     setShowRegister(false);
     setShowUsuarios(true);
+    setShowMaterias(false);
   };
 
   const handleCloseUsuarios = () => {
     setShowUsuarios(false);
+  };
+
+  const handleShowMaterias = () => {
+    setShowMaterias(true);
+    setShowUsuarios(false);
+    setShowLogin(false);
+    setShowRegister(false);
+  };
+
+  const handleCloseMaterias = () => {
+    setShowMaterias(false);
   };
 
   if (loadingUser) {
@@ -105,14 +120,17 @@ function App() {
           setShowLogin(true);
           setShowRegister(false);
           setShowUsuarios(false);
+          setShowMaterias(false);
         }}
         onRegisterClick={() => {
           setShowRegister(true);
           setShowLogin(false);
           setShowUsuarios(false);
+          setShowMaterias(false);
         }}
         onLogout={handleLogout}
         onUsuariosClick={handleShowUsuarios}
+        onMateriasClick={handleShowMaterias}
       />
 
       <main>
@@ -124,6 +142,15 @@ function App() {
               <div className="container my-4">
                 <Usuarios />
                 <button className="btn btn-secondary mt-3" onClick={handleCloseUsuarios}>
+                  Volver
+                </button>
+              </div>
+            )}
+
+            {showMaterias && user && (
+              <div className="container my-4">
+                <Materias />
+                <button className="btn btn-secondary mt-3" onClick={handleCloseMaterias}>
                   Volver
                 </button>
               </div>
@@ -145,9 +172,9 @@ function App() {
               />
             )}
 
-            {!showLogin && !showRegister && !showUsuarios && !user && <HeroCarousel />}
+            {!showLogin && !showRegister && !showUsuarios && !showMaterias && !user && <HeroCarousel />}
 
-            {user && !showLogin && !showRegister && !showUsuarios && (
+            {user && !showLogin && !showRegister && !showUsuarios && !showMaterias && (
               <>
                 <AccessCards />
                 <Banner />
