@@ -1,33 +1,37 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function Login({ onLoginSuccess, onPasswordResetRequired, onCancel }) {
+export default function Login({ onLoginSuccess }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     try {
       const res = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        credentials: 'include', // Necesario para que las cookies HttpOnly se guarden
         body: JSON.stringify(form),
       });
+
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
 
-onLoginSuccess(data);
-
-
+      // Autenticado con éxito
+      onLoginSuccess();
+      navigate('/');
     } catch (err) {
       setError(err.message);
     }
-  };
-  const handleCancel = () => {
-    onCancel();
   };
 
   return (
@@ -66,7 +70,7 @@ onLoginSuccess(data);
           <button
             type="button"
             className="btn btn-danger w-100 m-2"
-            onClick={handleCancel}
+            onClick={() => navigate('/')}
           >
             Cancelar
           </button>
