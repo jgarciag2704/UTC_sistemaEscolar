@@ -374,21 +374,34 @@ app.post('/api/materias', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'No autorizado para crear materias' });
     }
 
-    const { materia_id, nombre_materia, carrera_id, tipo } = req.body;
+ const { nombre_materia, carrera_id, tipo } = req.body;
 
-    if (!materia_id || !nombre_materia || !carrera_id || !tipo) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios' });
-    }
+if (!nombre_materia || !carrera_id || !tipo) {
+  return res.status(400).json({ error: 'Faltan campos obligatorios' });
+}
 
-    const { data, error } = await supabase
-      .from('materias')
-      .insert({ materia_id, nombre_materia, carrera_id, tipo })
-      .select()
-      .single();
+// Buscar el máximo ID actual
+const { data: maxData, error: maxError } = await supabase
+  .from('materias')
+  .select('materia_id')
+  .order('materia_id', { ascending: false })
+  .limit(1);
 
-    if (error) throw error;
+if (maxError) throw maxError;
 
-    res.status(201).json({ message: 'Materia creada exitosamente', materia: data });
+const nextId = maxData.length > 0 ? maxData[0].materia_id + 1 : 1;
+
+// Insertar con el nuevo ID
+const { data, error } = await supabase
+  .from('materias')
+  .insert({ materia_id: nextId, nombre_materia, carrera_id, tipo })
+  .select()
+  .single();
+
+if (error) throw error;
+
+res.status(201).json({ message: 'Materia creada exitosamente', materia: data });
+
   } catch (err) {
     console.error('Error al crear materia:', err);
     res.status(500).json({ error: err.message || 'Error interno del servidor' });

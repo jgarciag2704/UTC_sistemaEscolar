@@ -58,6 +58,7 @@ function App() {
 
       <main>
         <Routes>
+          {/* Página principal */}
           <Route
             path="/"
             element={
@@ -70,6 +71,7 @@ function App() {
             }
           />
 
+          {/* Login */}
           <Route
             path="/login"
             element={
@@ -77,6 +79,7 @@ function App() {
             }
           />
 
+          {/* Registro */}
           <Route
             path="/register"
             element={<Register onRegistered={() => window.location.href = "/"} />}

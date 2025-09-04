@@ -49,7 +49,6 @@ export default function Materias() {
 
     const resetForm = () => {
         setForm({
-            materia_id: '',
             nombre_materia: '',
             carrera_id: '',
             tipo: '',
@@ -202,18 +201,20 @@ export default function Materias() {
                     {error && <div className="alert alert-danger">{error}</div>}
 
                     <form onSubmit={handleSubmit}>
-                        <div className="mb-2">
-                            <label>ID Materia</label>
-                            <input
-                                type="text"
-                                name="materia_id"
-                                value={form.materia_id}
-                                onChange={handleChange}
-                                className="form-control"
-                                required
-                                disabled={!!editingId}  // para que no puedas cambiar el ID si estás editando
-                            />
-                        </div>
+                       {/* 
+<div className="mb-2">
+    <label>ID Materia</label>
+    <input
+        type="text"
+        name="materia_id"
+        value={form.materia_id}
+        onChange={handleChange}
+        className="form-control"
+        required
+        disabled={!!editingId}
+    />
+</div>
+*/}
                         <div className="mb-2">
                             <label>Nombre Materia</label>
                             <input
